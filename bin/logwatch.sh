@@ -12,8 +12,14 @@ source "${PROJECT_ROOT}/lib/validator.sh"
 source "${PROJECT_ROOT}/lib/ssh.sh"
 # shellcheck source=../lib/output.sh
 source "${PROJECT_ROOT}/lib/output.sh"
+# shellcheck source=../lib/process.sh
+source "${PROJECT_ROOT}/lib/process.sh"
 # shellcheck source=../lib/web.sh
 source "${PROJECT_ROOT}/lib/web.sh"
+# shellcheck source=../lib/radius.sh
+source "${PROJECT_ROOT}/lib/radius.sh"
+# shellcheck source=../lib/orchestrator.sh
+source "${PROJECT_ROOT}/lib/orchestrator.sh"
 
 usage() {
   cat <<'EOF'
@@ -108,8 +114,7 @@ main() {
     exit 0
   fi
 
-  print_info "Base validada."
-  print_info "Siguiente paso: concurrencia real para grupo WEB + watcher RADIUS."
+  run_monitoring "${normalized_mac}" "${web_pattern}" "${radius_pattern}"
 }
 
 main "$@"
