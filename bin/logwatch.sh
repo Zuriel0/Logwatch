@@ -10,16 +10,21 @@ source "${PROJECT_ROOT}/lib/config.sh"
 source "${PROJECT_ROOT}/lib/validator.sh"
 # shellcheck source=../lib/ssh.sh
 source "${PROJECT_ROOT}/lib/ssh.sh"
+# shellcheck source=../lib/output.sh
+source "${PROJECT_ROOT}/lib/output.sh"
+# shellcheck source=../lib/web.sh
+source "${PROJECT_ROOT}/lib/web.sh"
 
 usage() {
   cat <<'EOF'
 Uso:
-  ./bin/logwatch.sh --mac aa:bb:cc:dd:ee:ff [--config ./config/servers.conf]
+  ./bin/logwatch.sh --mac aa:bb:cc:dd:ee:ff [--config ./config/servers.conf] [--test-single-web-stream]
 
 Opciones:
-  --mac       MAC a buscar (obligatorio)
-  --config    Ruta al archivo de configuración
-  --help      Muestra esta ayuda
+  --mac                     MAC a buscar (obligatorio)
+  --config                  Ruta al archivo de configuración
+  --test-single-web-stream  Ejecuta una prueba real de stream contra el primer WEB
+  --help                    Muestra esta ayuda
 EOF
 }
 
@@ -29,6 +34,7 @@ main() {
   local web_pattern=""
   local radius_pattern=""
   local config_path="${PROJECT_ROOT}/config/servers.conf"
+  local test_single_web_stream="false"
 
   while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -39,6 +45,10 @@ main() {
       --config)
         config_path="${2:-}"
         shift 2
+        ;;
+      --test-single-web-stream)
+        test_single_web_stream="true"
+        shift
         ;;
       --help|-h)
         usage
@@ -60,48 +70,46 @@ main() {
 
   load_config "${config_path}"
   validate_config
+  init_colors
 
   validate_mac "${mac}"
   normalized_mac="$(normalize_mac "${mac}")"
   web_pattern="$(build_web_pattern "${normalized_mac}")"
   radius_pattern="$(build_radius_pattern "${normalized_mac}")"
 
-  echo "Configuración cargada correctamente."
-  echo "MAC normalizada: ${normalized_mac}"
-  echo "Patrón WEB: ${web_pattern}"
-  echo "Patrón RADIUS: ${radius_pattern}"
-  echo
+  print_success "Configuración cargada correctamente."
+  print_info "MAC normalizada: ${normalized_mac}"
+  print_info "Patrón WEB: ${web_pattern}"
+  print_info "Patrón RADIUS: ${radius_pattern}"
 
   if [[ "${WEB_ENABLED}" == "true" ]]; then
-    local first_web_entry first_web_name web_cmd
+    local first_web_entry first_web_name
     first_web_entry="${WEB_SERVERS[0]}"
     first_web_name="$(get_server_name "${first_web_entry}")"
-    web_cmd="$(build_web_remote_command "${web_pattern}")"
 
-    echo "Probando conexión SSH al primer WEB: ${first_web_name}"
-    test_ssh_connection "${first_web_entry}"
-    echo "Conexión SSH OK con ${first_web_name}"
-    echo
-
-    echo "Comando remoto WEB de prueba:"
-    echo "${web_cmd}"
+    print_info "Probando conexión SSH al primer WEB: ${first_web_name}"
+    test_ssh_connection "${first_web_entry}" >/dev/null
+    print_success "Conexión SSH OK con ${first_web_name}"
   fi
 
   if [[ "${RADIUS_ENABLED}" == "true" ]]; then
-    local radius_entry radius_name radius_cmd
+    local radius_entry radius_name
     radius_entry="$(find_radius_server_entry)"
     radius_name="$(get_server_name "${radius_entry}")"
-    radius_cmd="$(build_radius_remote_command "${radius_pattern}")"
 
-    echo
-    echo "Probando conexión SSH al RADIUS activo: ${radius_name}"
-    test_ssh_connection "${radius_entry}"
-    echo "Conexión SSH OK con ${radius_name}"
-    echo
-
-    echo "Comando remoto RADIUS de prueba:"
-    echo "${radius_cmd}"
+    print_info "Probando conexión SSH al RADIUS activo: ${radius_name}"
+    test_ssh_connection "${radius_entry}" >/dev/null
+    print_success "Conexión SSH OK con ${radius_name}"
   fi
+
+  if [[ "${test_single_web_stream}" == "true" ]]; then
+    print_info "Entrando en modo de prueba real para un solo WEB."
+    run_single_web_stream_test "${normalized_mac}" "${web_pattern}"
+    exit 0
+  fi
+
+  print_info "Base validada."
+  print_info "Siguiente paso: concurrencia real para grupo WEB + watcher RADIUS."
 }
 
 main "$@"
