@@ -8,13 +8,25 @@ COLOR_RESET=""
 
 init_colors() {
   local enable="${ENABLE_COLOR:-true}"
+  local force="${FORCE_COLOR:-false}"
 
-  if [[ "${enable}" == "true" && -t 1 ]]; then
-    COLOR_RED=$'\033[31m'
-    COLOR_YELLOW=$'\033[33m'
-    COLOR_GREEN=$'\033[32m'
-    COLOR_BLUE=$'\033[34m'
-    COLOR_RESET=$'\033[0m'
+  enable="${enable,,}"
+  force="${force,,}"
+
+  if [[ "${enable}" == "true" || "${enable}" == "1" || "${enable}" == "yes" ]]; then
+    if [[ -t 1 || "${force}" == "true" || "${force}" == "1" || "${force}" == "yes" ]]; then
+      COLOR_RED=$'\033[31m'
+      COLOR_YELLOW=$'\033[33m'
+      COLOR_GREEN=$'\033[32m'
+      COLOR_BLUE=$'\033[34m'
+      COLOR_RESET=$'\033[0m'
+    else
+      COLOR_RED=""
+      COLOR_YELLOW=""
+      COLOR_GREEN=""
+      COLOR_BLUE=""
+      COLOR_RESET=""
+    fi
   else
     COLOR_RED=""
     COLOR_YELLOW=""
@@ -44,21 +56,63 @@ print_error() {
   printf '%s[ERROR]%s %s\n' "${COLOR_RED}" "${COLOR_RESET}" "${msg}" >&2
 }
 
+print_server_status() {
+  local server_name="${1:-}"
+  local server_type="${2:-}"
+  local status="${3:-}"
+
+  printf '[%s][%s][STATUS] %s\n' "${server_name}" "${server_type}" "${status}"
+}
+
+escape_sed_pattern() {
+  local text="${1:-}"
+  printf '%s' "${text}" | sed -e 's/[][\/.^$*+?(){}|]/\\&/g'
+}
+
+build_mac_variants() {
+  local mac="${1:-}"
+  local raw=""
+  local dashed=""
+  local dotted=""
+
+  raw="${mac//:/}"
+  dashed="${mac//:/-}"
+
+  if [[ "${#raw}" -eq 12 ]]; then
+    dotted="${raw:0:4}.${raw:4:4}.${raw:8:4}"
+  fi
+
+  printf '%s\n' "${mac}"
+  printf '%s\n' "${dashed}"
+  printf '%s\n' "${raw}"
+  [[ -n "${dotted}" ]] && printf '%s\n' "${dotted}"
+}
+
 highlight_mac_in_line() {
   local line="${1:-}"
   local mac="${2:-}"
 
-  if [[ -z "${mac}" ]]; then
+  [[ -n "${mac}" ]] || {
     echo "${line}"
     return 0
-  fi
+  }
 
-  if [[ -z "${COLOR_RED}" ]]; then
+  [[ -n "${COLOR_RED}" ]] || {
     echo "${line}"
     return 0
-  fi
+  }
 
-  sed -E "s/${mac}/${COLOR_RED}&${COLOR_RESET}/Ig" <<< "${line}"
+  local result="${line}"
+  local variant=""
+  local escaped=""
+
+  while IFS= read -r variant; do
+    [[ -n "${variant}" ]] || continue
+    escaped="$(escape_sed_pattern "${variant}")"
+    result="$(printf '%s\n' "${result}" | sed -E "s/${escaped}/${COLOR_RED}&${COLOR_RESET}/Ig")"
+  done < <(build_mac_variants "${mac}")
+
+  echo "${result}"
 }
 
 print_match() {
@@ -71,12 +125,4 @@ print_match() {
   rendered_line="$(highlight_mac_in_line "${line}" "${mac}")"
 
   printf '[%s][%s] %s\n' "${server_name}" "${server_type}" "${rendered_line}"
-}
-
-print_server_status() {
-  local server_name="${1:-}"
-  local server_type="${2:-}"
-  local status="${3:-}"
-
-  printf '[%s][%s][STATUS] %s\n' "${server_name}" "${server_type}" "${status}"
 }
