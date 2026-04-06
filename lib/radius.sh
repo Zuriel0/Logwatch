@@ -15,10 +15,23 @@ start_radius_watcher() {
   print_info "Iniciando watcher RADIUS: ${radius_name}"
 
   (
+    set +e
+
+    printf '%s\x1f%s\x1f%s\n' "${radius_name}" "radius_status" "MONITOREANDO"
+
     run_remote_stream "${radius_entry}" "${remote_cmd}" 2>&1 | while IFS= read -r line; do
       [[ -n "${line}" ]] || continue
       printf '%s\x1f%s\x1f%s\n' "${radius_name}" "radius" "${line}"
     done
+
+    local stream_exit
+    stream_exit=${PIPESTATUS[0]}
+
+    if [[ "${stream_exit}" -eq 0 ]]; then
+      printf '%s\x1f%s\x1f%s\n' "${radius_name}" "radius_status" "FINALIZADO"
+    else
+      printf '%s\x1f%s\x1f%s\n' "${radius_name}" "radius_status" "ERROR stream_exit=${stream_exit}"
+    fi
   ) > "${EVENT_FIFO}" &
 
   pid=$!
@@ -31,4 +44,11 @@ handle_radius_match() {
   local normalized_mac="${3:-}"
 
   print_match "${server_name}" "radius" "${line}" "${normalized_mac}"
+}
+
+handle_radius_status() {
+  local server_name="${1:-}"
+  local status="${2:-}"
+
+  print_server_status "${server_name}" "radius" "${status}"
 }

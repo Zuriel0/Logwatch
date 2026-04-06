@@ -103,6 +103,7 @@ main() {
     radius_entry="$(find_radius_server_entry)"
     radius_name="$(get_server_name "${radius_entry}")"
 
+    print_info "Servidor RADIUS activo configurado: ${radius_name}"
     print_info "Probando conexión SSH al RADIUS activo: ${radius_name}"
     test_ssh_connection "${radius_entry}" >/dev/null
     print_success "Conexión SSH OK con ${radius_name}"

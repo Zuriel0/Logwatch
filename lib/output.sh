@@ -72,3 +72,11 @@ print_match() {
 
   printf '[%s][%s] %s\n' "${server_name}" "${server_type}" "${rendered_line}"
 }
+
+print_server_status() {
+  local server_name="${1:-}"
+  local server_type="${2:-}"
+  local status="${3:-}"
+
+  printf '[%s][%s][STATUS] %s\n' "${server_name}" "${server_type}" "${status}"
+}

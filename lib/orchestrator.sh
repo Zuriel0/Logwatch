@@ -25,6 +25,9 @@ wait_for_events() {
         radius)
           handle_radius_match "${server_name}" "${line}" "${normalized_mac}"
           ;;
+        radius_status)
+          handle_radius_status "${server_name}" "${line}"
+          ;;
         *)
           print_warn "Evento desconocido recibido: ${server_type}"
           ;;
