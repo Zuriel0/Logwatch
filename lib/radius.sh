@@ -16,7 +16,6 @@ start_radius_watcher() {
 
   (
     set +e
-
     printf '%s\x1f%s\x1f%s\n' "${radius_name}" "radius_status" "MONITOREANDO"
 
     run_remote_stream "${radius_entry}" "${remote_cmd}" 2>&1 | while IFS= read -r line; do

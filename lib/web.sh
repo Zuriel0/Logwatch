@@ -20,10 +20,22 @@ start_single_web_watcher() {
   print_info "Iniciando watcher WEB: ${web_name}"
 
   (
+    set +e
+    printf '%s\x1f%s\x1f%s\n' "${web_name}" "web_status" "MONITOREANDO"
+
     run_remote_stream "${entry}" "${remote_cmd}" 2>&1 | while IFS= read -r line; do
       [[ -n "${line}" ]] || continue
       printf '%s\x1f%s\x1f%s\n' "${web_name}" "web" "${line}"
     done
+
+    local stream_exit
+    stream_exit=${PIPESTATUS[0]}
+
+    if [[ "${stream_exit}" -eq 0 ]]; then
+      printf '%s\x1f%s\x1f%s\n' "${web_name}" "web_status" "FINALIZADO"
+    else
+      printf '%s\x1f%s\x1f%s\n' "${web_name}" "web_status" "ERROR stream_exit=${stream_exit}"
+    fi
   ) > "${EVENT_FIFO}" &
 
   pid=$!
@@ -51,13 +63,19 @@ handle_web_match() {
 
   if [[ -z "${current_winner}" ]]; then
     set_web_winner "${server_name}"
-    print_success "Primer match WEB detectado en: ${server_name}"
+    print_server_status "${server_name}" "web" "GANADOR"
 
     if [[ "${WEB_STOP_OTHER_SERVERS_ON_FIRST_MATCH}" == "true" ]]; then
       print_info "Cerrando otros servidores WEB. El ganador permanece activo: ${server_name}"
       stop_other_web_pids "${server_name}"
     fi
   fi
+}
+
+handle_web_status() {
+  local server_name="${1:-}"
+  local status="${2:-}"
+  print_server_status "${server_name}" "web" "${status}"
 }
 
 run_single_web_stream_test() {

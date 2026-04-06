@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
-# Requiere Bash 4+ para arrays asociativos en fases posteriores.
-
 load_config() {
   local config_path="${1:-}"
 
@@ -45,51 +43,61 @@ validate_required_globals() {
 }
 
 validate_web_config() {
-  if [[ "${WEB_ENABLED}" == "true" ]]; then
-    [[ -n "${WEB_LOG_PATH:-}" ]] || {
-      echo "Error: WEB_LOG_PATH es obligatorio cuando WEB_ENABLED=true" >&2
-      return 1
-    }
+  [[ "${WEB_ENABLED}" == "true" ]] || return 0
 
-    [[ -n "${WEB_STOP_OTHER_SERVERS_ON_FIRST_MATCH:-}" ]] || {
-      echo "Error: WEB_STOP_OTHER_SERVERS_ON_FIRST_MATCH es obligatorio." >&2
-      return 1
-    }
+  [[ -n "${WEB_LOG_PATH:-}" ]] || {
+    echo "Error: WEB_LOG_PATH es obligatorio cuando WEB_ENABLED=true" >&2
+    return 1
+  }
 
-    [[ "${#WEB_SERVERS[@]}" -gt 0 ]] || {
-      echo "Error: WEB_SERVERS no puede estar vacío cuando WEB_ENABLED=true" >&2
-      return 1
-    }
+  [[ -n "${WEB_STOP_OTHER_SERVERS_ON_FIRST_MATCH:-}" ]] || {
+    echo "Error: WEB_STOP_OTHER_SERVERS_ON_FIRST_MATCH es obligatorio." >&2
+    return 1
+  }
 
-    local entry
-    for entry in "${WEB_SERVERS[@]}"; do
-      validate_server_entry "${entry}" "web"
-    done
+  if ! declare -p WEB_SERVERS >/dev/null 2>&1; then
+    echo "Error: WEB_SERVERS no está definido." >&2
+    return 1
   fi
+
+  [[ "${#WEB_SERVERS[@]}" -gt 0 ]] || {
+    echo "Error: WEB_SERVERS no puede estar vacío cuando WEB_ENABLED=true" >&2
+    return 1
+  }
+
+  local entry
+  for entry in "${WEB_SERVERS[@]}"; do
+    validate_server_entry "${entry}" "web"
+  done
 }
 
 validate_radius_config() {
-  if [[ "${RADIUS_ENABLED}" == "true" ]]; then
-    [[ -n "${RADIUS_LOG_PATH:-}" ]] || {
-      echo "Error: RADIUS_LOG_PATH es obligatorio cuando RADIUS_ENABLED=true" >&2
-      return 1
-    }
+  [[ "${RADIUS_ENABLED}" == "true" ]] || return 0
 
-    [[ -n "${RADIUS_ACTIVE_SERVER:-}" ]] || {
-      echo "Error: RADIUS_ACTIVE_SERVER es obligatorio cuando RADIUS_ENABLED=true" >&2
-      return 1
-    }
+  [[ -n "${RADIUS_LOG_PATH:-}" ]] || {
+    echo "Error: RADIUS_LOG_PATH es obligatorio cuando RADIUS_ENABLED=true" >&2
+    return 1
+  }
 
-    [[ "${#RADIUS_SERVERS[@]}" -gt 0 ]] || {
-      echo "Error: RADIUS_SERVERS no puede estar vacío cuando RADIUS_ENABLED=true" >&2
-      return 1
-    }
+  [[ -n "${RADIUS_ACTIVE_SERVER:-}" ]] || {
+    echo "Error: RADIUS_ACTIVE_SERVER es obligatorio cuando RADIUS_ENABLED=true" >&2
+    return 1
+  }
 
-    local entry
-    for entry in "${RADIUS_SERVERS[@]}"; do
-      validate_server_entry "${entry}" "radius"
-    done
+  if ! declare -p RADIUS_SERVERS >/dev/null 2>&1; then
+    echo "Error: RADIUS_SERVERS no está definido." >&2
+    return 1
   fi
+
+  [[ "${#RADIUS_SERVERS[@]}" -gt 0 ]] || {
+    echo "Error: RADIUS_SERVERS no puede estar vacío cuando RADIUS_ENABLED=true" >&2
+    return 1
+  }
+
+  local entry
+  for entry in "${RADIUS_SERVERS[@]}"; do
+    validate_server_entry "${entry}" "radius"
+  done
 }
 
 validate_radius_active_server_exists() {
@@ -162,7 +170,6 @@ validate_server_entry() {
 get_server_field() {
   local entry="${1:-}"
   local field_number="${2:-}"
-
   awk -F'|' -v n="${field_number}" '{print $n}' <<< "${entry}"
 }
 

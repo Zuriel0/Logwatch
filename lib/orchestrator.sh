@@ -22,6 +22,9 @@ wait_for_events() {
         web)
           handle_web_match "${server_name}" "${line}" "${normalized_mac}"
           ;;
+        web_status)
+          handle_web_status "${server_name}" "${line}"
+          ;;
         radius)
           handle_radius_match "${server_name}" "${line}" "${normalized_mac}"
           ;;
