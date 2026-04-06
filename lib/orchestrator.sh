@@ -56,12 +56,16 @@ run_monitoring() {
 
   print_info "Estado runtime: ${RUNTIME_SESSION_DIR}"
 
-  if [[ "${WEB_ENABLED}" == "true" ]]; then
+  if is_enabled "${WEB_ENABLED}"; then
     start_web_watchers "${web_pattern}"
+  else
+    print_warn "No se iniciaron watchers WEB porque WEB_ENABLED está deshabilitado."
   fi
 
-  if [[ "${RADIUS_ENABLED}" == "true" ]]; then
+  if is_enabled "${RADIUS_ENABLED}"; then
     start_radius_watcher "${radius_pattern}"
+  else
+    print_warn "No se inició watcher RADIUS porque RADIUS_ENABLED está deshabilitado."
   fi
 
   print_success "Monitoreo concurrente iniciado."

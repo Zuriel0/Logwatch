@@ -84,11 +84,13 @@ main() {
   radius_pattern="$(build_radius_pattern "${normalized_mac}")"
 
   print_success "Configuración cargada correctamente."
+  print_info "WEB_ENABLED leído como: '${WEB_ENABLED}'"
+  print_info "RADIUS_ENABLED leído como: '${RADIUS_ENABLED}'"
   print_info "MAC normalizada: ${normalized_mac}"
   print_info "Patrón WEB: ${web_pattern}"
   print_info "Patrón RADIUS: ${radius_pattern}"
 
-  if [[ "${WEB_ENABLED}" == "true" ]]; then
+  if is_enabled "${WEB_ENABLED}"; then
     local first_web_entry first_web_name
     first_web_entry="${WEB_SERVERS[0]}"
     first_web_name="$(get_server_name "${first_web_entry}")"
@@ -96,9 +98,11 @@ main() {
     print_info "Probando conexión SSH al primer WEB: ${first_web_name}"
     test_ssh_connection "${first_web_entry}" >/dev/null
     print_success "Conexión SSH OK con ${first_web_name}"
+  else
+    print_warn "Grupo WEB deshabilitado por configuración."
   fi
 
-  if [[ "${RADIUS_ENABLED}" == "true" ]]; then
+  if is_enabled "${RADIUS_ENABLED}"; then
     local radius_entry radius_name
     radius_entry="$(find_radius_server_entry)"
     radius_name="$(get_server_name "${radius_entry}")"
@@ -107,6 +111,8 @@ main() {
     print_info "Probando conexión SSH al RADIUS activo: ${radius_name}"
     test_ssh_connection "${radius_entry}" >/dev/null
     print_success "Conexión SSH OK con ${radius_name}"
+  else
+    print_warn "Grupo RADIUS deshabilitado por configuración."
   fi
 
   if [[ "${test_single_web_stream}" == "true" ]]; then

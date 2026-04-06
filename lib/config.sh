@@ -1,5 +1,26 @@
 #!/usr/bin/env bash
 
+normalize_bool() {
+  local value="${1:-}"
+  value="${value//$'\r'/}"
+  value="${value,,}"
+  echo "${value}"
+}
+
+is_enabled() {
+  local value
+  value="$(normalize_bool "${1:-}")"
+
+  case "${value}" in
+    true|1|yes|y|on)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 load_config() {
   local config_path="${1:-}"
 
@@ -43,7 +64,7 @@ validate_required_globals() {
 }
 
 validate_web_config() {
-  [[ "${WEB_ENABLED}" == "true" ]] || return 0
+  is_enabled "${WEB_ENABLED}" || return 0
 
   [[ -n "${WEB_LOG_PATH:-}" ]] || {
     echo "Error: WEB_LOG_PATH es obligatorio cuando WEB_ENABLED=true" >&2
@@ -72,7 +93,7 @@ validate_web_config() {
 }
 
 validate_radius_config() {
-  [[ "${RADIUS_ENABLED}" == "true" ]] || return 0
+  is_enabled "${RADIUS_ENABLED}" || return 0
 
   [[ -n "${RADIUS_LOG_PATH:-}" ]] || {
     echo "Error: RADIUS_LOG_PATH es obligatorio cuando RADIUS_ENABLED=true" >&2
@@ -101,7 +122,7 @@ validate_radius_config() {
 }
 
 validate_radius_active_server_exists() {
-  [[ "${RADIUS_ENABLED}" == "true" ]] || return 0
+  is_enabled "${RADIUS_ENABLED}" || return 0
 
   local found="false"
   local entry name
