@@ -3,14 +3,14 @@
 build_ssh_target() {
   local entry="${1:-}"
 
-  local mode alias host user
+  local mode ssh_alias host user
   mode="$(get_server_mode "${entry}")"
-  alias="$(get_server_alias "${entry}")"
+  ssh_alias="$(get_server_alias "${entry}")"
   host="$(get_server_host "${entry}")"
   user="$(get_server_user "${entry}")"
 
   if [[ "${mode}" == "alias" ]]; then
-    echo "${alias}"
+    echo "${ssh_alias}"
     return 0
   fi
 
@@ -34,18 +34,29 @@ build_ssh_port_args() {
   fi
 }
 
+build_effective_ssh_options() {
+  local timeout="${CONNECT_TIMEOUT_SECONDS:-20}"
+
+  if [[ -n "${SSH_COMMON_OPTIONS:-}" ]]; then
+    echo "${SSH_COMMON_OPTIONS}"
+  else
+    echo "-o BatchMode=yes -o ConnectTimeout=${timeout}"
+  fi
+}
+
 run_ssh_command() {
   local entry="${1:-}"
   local remote_cmd="${2:-}"
 
-  local target mode port_args
+  local target mode port_args effective_opts
   local -a common_opts ssh_cmd
 
   target="$(build_ssh_target "${entry}")" || return 1
   mode="$(get_server_mode "${entry}")"
   port_args="$(build_ssh_port_args "${entry}")"
+  effective_opts="$(build_effective_ssh_options)"
 
-  read -r -a common_opts <<< "${SSH_COMMON_OPTIONS:-}"
+  read -r -a common_opts <<< "${effective_opts}"
 
   ssh_cmd=(ssh "${common_opts[@]}")
 
@@ -73,7 +84,7 @@ run_remote_stream() {
 
 build_web_remote_command() {
   local web_pattern="${1:-}"
-  echo "tail -F ${WEB_LOG_PATH} | grep --line-buffered -i '${web_pattern}'"
+  echo "tail -F ${WEB_LOG_PATH} | grep --line-buffered -Ei '${web_pattern}'"
 }
 
 build_radius_remote_command() {

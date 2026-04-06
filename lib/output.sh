@@ -20,19 +20,7 @@ init_colors() {
       COLOR_GREEN=$'\033[32m'
       COLOR_BLUE=$'\033[34m'
       COLOR_RESET=$'\033[0m'
-    else
-      COLOR_RED=""
-      COLOR_YELLOW=""
-      COLOR_GREEN=""
-      COLOR_BLUE=""
-      COLOR_RESET=""
     fi
-  else
-    COLOR_RED=""
-    COLOR_YELLOW=""
-    COLOR_GREEN=""
-    COLOR_BLUE=""
-    COLOR_RESET=""
   fi
 }
 
@@ -74,18 +62,21 @@ build_mac_variants() {
   local raw=""
   local dashed=""
   local dotted=""
+  local urlenc=""
 
   raw="${mac//:/}"
   dashed="${mac//:/-}"
+  urlenc="${mac//:/%3a}"
 
   if [[ "${#raw}" -eq 12 ]]; then
     dotted="${raw:0:4}.${raw:4:4}.${raw:8:4}"
   fi
 
   printf '%s\n' "${mac}"
-  printf '%s\n' "${dashed}"
   printf '%s\n' "${raw}"
+  printf '%s\n' "${dashed}"
   [[ -n "${dotted}" ]] && printf '%s\n' "${dotted}"
+  printf '%s\n' "${urlenc}"
 }
 
 highlight_mac_in_line() {
